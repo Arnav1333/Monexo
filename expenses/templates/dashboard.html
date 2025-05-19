@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% comment %} <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+</head> {% endcomment %}
+
+
+
+{% block content %}
+  <h2>Dashboard</h2>
+  <a href="{% url 'add_expense' %}"> Add New Expense</a>
+  
+  {% if expenses %}
+    <table border="1" cellpadding="10" cellspacing="0">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Amount (₹)</th>
+          <th>Category</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for expense in expenses %}
+          <tr>
+            <td>{{ expense.name }}</td>
+            <td>{{ expense.amount }}</td>
+            <td>{{ expense.get_category_display }}</td>
+            <td>{{ expense.date }}</td>
+            <td>
+  <a href="{% url 'edit_expense' expense.pk %}">✏️ Edit</a> |
+  <a href="{% url 'delete_expense' expense.pk %}">🗑️ Delete</a>
+</td>
+
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No expenses found. <a href="{% url 'add_expense' %}">Add your first expense</a>.</p>
+  {% endif %}
+
+<form method="post" action="{% url 'logout' %}">
+  {% csrf_token %}
+  <button type="submit">Logout</button>
+</form>
+{% endblock %}
+
+
+{% comment %} </body>
+</html> {% endcomment %}
