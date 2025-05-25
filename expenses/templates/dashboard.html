@@ -1,54 +1,321 @@
 {% extends 'base.html' %}
-{% comment %} <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
-</head> {% endcomment %}
-
-
 
 {% block content %}
-  <h2>Dashboard</h2>
-  <a href="{% url 'add_expense' %}"> Add New Expense</a>
-  
-  {% if expenses %}
-    <table border="1" cellpadding="10" cellspacing="0">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Amount (₹)</th>
-          <th>Category</th>
-          <th>Date</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for expense in expenses %}
-          <tr>
-            <td>{{ expense.name }}</td>
-            <td>{{ expense.amount }}</td>
-            <td>{{ expense.get_category_display }}</td>
-            <td>{{ expense.date }}</td>
-            <td>
-  <a href="{% url 'edit_expense' expense.pk %}">✏️ Edit</a> |
-  <a href="{% url 'delete_expense' expense.pk %}">🗑️ Delete</a>
-</td>
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h2>📊 Dashboard</h2>
+        <a href="{% url 'add_expense' %}" class="add-expense-btn">➕ Add New Expense</a>
+    </div>
 
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    <p>No expenses found. <a href="{% url 'add_expense' %}">Add your first expense</a>.</p>
-  {% endif %}
+    <!-- Analytics Summary Cards -->
+    <div class="analytics-summary">
+        <div class="summary-card total-spending">
+            <div class="card-icon">💰</div>
+            <div class="card-content">
+                <h3>Total This Month</h3>
+                <p class="amount" id="monthlyTotal">₹0</p>
+            </div>
+        </div>
+        
+        <div class="summary-card expense-count">
+            <div class="card-icon">📝</div>
+            <div class="card-content">
+                <h3>Total Expenses</h3>
+                <p class="amount">{{ expenses|length }}</p>
+            </div>
+        </div>
+        
+        <div class="summary-card avg-expense">
+            <div class="card-icon">📊</div>
+            <div class="card-content">
+                <h3>Average Expense</h3>
+                <p class="amount" id="avgExpense">₹0</p>
+            </div>
+        </div>
+    </div>
 
-<form method="post" action="{% url 'logout' %}">
-  {% csrf_token %}
-  <button type="submit">Logout</button>
-</form>
+    <!-- Charts Section -->
+    <div class="charts-section">
+        <div class="chart-container">
+            <h3>📈 Monthly Spending Trend</h3>
+            <canvas id="monthlyChart" width="400" height="200"></canvas>
+        </div>
+        
+        <div class="chart-container">
+            <h3>🥧 Category Breakdown</h3>
+            <canvas id="categoryChart" width="400" height="200"></canvas>
+        </div>
+    </div>
+
+    <!-- Recent Expenses Chart -->
+    <div class="chart-container full-width">
+        <h3>📅 Daily Spending (Last 30 Days)</h3>
+        <canvas id="dailyChart" width="800" height="300"></canvas>
+    </div>
+
+    <!-- Expenses Table -->
+    <div class="expenses-table-container">
+        <h3>📋 Recent Expenses</h3>
+        {% if expenses %}
+            <div class="table-wrapper">
+                <table class="expenses-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Amount (₹)</th>
+                            <th>Category</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for expense in expenses %}
+                        <tr>
+                            <td class="expense-name">{{ expense.name }}</td>
+                            <td class="expense-amount">₹{{ expense.amount }}</td>
+                            <td>
+                                <span class="category-badge category-{{ expense.category|lower }}">
+                                    {{ expense.get_category_display }}
+                                </span>
+                            </td>
+                            <td class="expense-date">{{ expense.date|date:"M d, Y" }}</td>
+                            <td class="actions">
+                                <a href="{% url 'edit_expense' expense.pk %}" class="action-btn edit-btn" title="Edit">✏️</a>
+                                <a href="{% url 'delete_expense' expense.pk %}" class="action-btn delete-btn" title="Delete">🗑️</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">📊</div>
+                <h3>No expenses yet!</h3>
+                <p>Start tracking your expenses to see analytics and insights.</p>
+                <a href="{% url 'add_expense' %}" class="btn-primary">Add your first expense</a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="quick-stats">
+        <h3>📈 Quick Stats</h3>
+        <div class="stats-grid">
+            <div class="stat-item">
+                <span class="stat-label">Highest Expense:</span>
+                <span class="stat-value" id="highestExpense">₹0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Most Used Category:</span>
+                <span class="stat-value" id="topCategory">-</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">This Week:</span>
+                <span class="stat-value" id="weeklyTotal">₹0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Last 7 Days Avg:</span>
+                <span class="stat-value" id="weeklyAvg">₹0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logout Button -->
+    <div class="logout-section">
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="logout-btn">🚪 Logout</button>
+        </form>
+    </div>
+</div>
+
+
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script>
+// Process expense data from Django template
+const expenses = [
+    {% for expense in expenses %}
+    {
+        name: "{{ expense.name }}",
+        amount: {{ expense.amount }},
+        category: "{{ expense.category }}",
+        date: "{{ expense.date|date:'Y-m-d' }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+
+// Calculate analytics
+function calculateAnalytics() {
+    if (expenses.length === 0) return;
+    
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    
+    // Monthly total
+    const monthlyExpenses = expenses.filter(exp => {
+        const expDate = new Date(exp.date);
+        return expDate.getMonth() === currentMonth && expDate.getFullYear() === currentYear;
+    });
+    const monthlyTotal = monthlyExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    
+    // Weekly total
+    const weeklyExpenses = expenses.filter(exp => new Date(exp.date) >= weekAgo);
+    const weeklyTotal = weeklyExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    
+    // Average expense
+    const avgExpense = expenses.length > 0 ? expenses.reduce((sum, exp) => sum + exp.amount, 0) / expenses.length : 0;
+    
+    // Highest expense
+    const highestExpense = expenses.length > 0 ? Math.max(...expenses.map(exp => exp.amount)) : 0;
+    
+    // Most used category
+    const categoryCount = {};
+    expenses.forEach(exp => {
+        categoryCount[exp.category] = (categoryCount[exp.category] || 0) + 1;
+    });
+    const topCategory = Object.keys(categoryCount).reduce((a, b) => categoryCount[a] > categoryCount[b] ? a : b, '-');
+    
+    // Weekly average
+    const weeklyAvg = weeklyExpenses.length > 0 ? weeklyTotal / 7 : 0;
+    
+    // Update DOM
+    document.getElementById('monthlyTotal').textContent = `₹${monthlyTotal.toFixed(2)}`;
+    document.getElementById('avgExpense').textContent = `₹${avgExpense.toFixed(2)}`;
+    document.getElementById('highestExpense').textContent = `₹${highestExpense.toFixed(2)}`;
+    document.getElementById('topCategory').textContent = topCategory.charAt(0).toUpperCase() + topCategory.slice(1).toLowerCase();
+    document.getElementById('weeklyTotal').textContent = `₹${weeklyTotal.toFixed(2)}`;
+    document.getElementById('weeklyAvg').textContent = `₹${weeklyAvg.toFixed(2)}`;
+}
+
+// Create charts
+function createCharts() {
+    if (expenses.length === 0) return;
+    
+    // Category breakdown
+    const categoryData = {};
+    expenses.forEach(exp => {
+        const category = exp.category.charAt(0).toUpperCase() + exp.category.slice(1).toLowerCase();
+        categoryData[category] = (categoryData[category] || 0) + exp.amount;
+    });
+    
+    const categoryChart = new Chart(document.getElementById('categoryChart'), {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(categoryData),
+            datasets: [{
+                data: Object.values(categoryData),
+                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': ₹' + context.parsed.toFixed(2);
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Monthly trend (last 6 months)
+    const monthlyData = {};
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+        const month = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthKey = month.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        monthlyData[monthKey] = 0;
+    }
+    
+    expenses.forEach(exp => {
+        const expDate = new Date(exp.date);
+        const monthKey = expDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        if (monthlyData.hasOwnProperty(monthKey)) {
+            monthlyData[monthKey] += exp.amount;
+        }
+    });
+    
+    const monthlyChart = new Chart(document.getElementById('monthlyChart'), {
+        type: 'line',
+        data: {
+            labels: Object.keys(monthlyData),
+            datasets: [{
+                label: 'Monthly Spending',
+                data: Object.values(monthlyData),
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { callback: function(value) { return '₹' + value; } }
+                }
+            }
+        }
+    });
+    
+    // Daily spending (last 30 days)
+    const dailyData = {};
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    
+    for (let d = new Date(thirtyDaysAgo); d <= now; d.setDate(d.getDate() + 1)) {
+        const dateKey = d.toISOString().split('T')[0];
+        dailyData[dateKey] = 0;
+    }
+    
+    expenses.forEach(exp => {
+        if (dailyData.hasOwnProperty(exp.date)) {
+            dailyData[exp.date] += exp.amount;
+        }
+    });
+    
+    const dailyChart = new Chart(document.getElementById('dailyChart'), {
+        type: 'bar',
+        data: {
+            labels: Object.keys(dailyData).map(date => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+            datasets: [{
+                label: 'Daily Spending',
+                data: Object.values(dailyData),
+                backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                borderColor: '#667eea',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { callback: function(value) { return '₹' + value; } }
+                }
+            }
+        }
+    });
+}
+
+// Initialize analytics
+document.addEventListener('DOMContentLoaded', function() {
+    calculateAnalytics();
+    createCharts();
+});
+</script>
 {% endblock %}
-
-
-{% comment %} </body>
-</html> {% endcomment %}

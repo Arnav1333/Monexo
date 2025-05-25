@@ -1,18 +1,13 @@
 {% extends 'base.html' %}
-{% comment %} <!DOCTYPE html>
-<html>
-<head>
-    <title>Log in</title>
-</head>
-<body> {% endcomment %}
+
 {% block content %}
+<div class="form-container">
     <h1>Log in</h1>
     <form method="post">
         {% csrf_token %}
         {{ form.as_p }}
-        <button type="submit">Log in</button>
         <input type="hidden" name="next" value="{{ next }}">
+        <button type="submit" class="btn-primary">Log in</button>
     </form>
+</div>
 {% endblock %}
-{% comment %} </body>
-</html> {% endcomment %}
